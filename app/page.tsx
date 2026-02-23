@@ -1,65 +1,107 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Search, MapPin, Loader2, UtensilsCrossed } from "lucide-react";
 
 export default function Home() {
+  const [campuses, setCampuses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
+
+  useEffect(() => {
+    fetch("/api/campuses")
+      .then((res) => res.json())
+      .then((data) => {
+        setCampuses(data);
+        setLoading(false);
+      });
+  }, []);
+
+  // Search Logic: Campus number ya FoodCourt ke naam se search karega
+  const filteredCampuses = campuses.filter((campus) => {
+    const searchLower = searchQuery.toLowerCase();
+    const campusMatch = campus.campusNumber.toString().includes(searchLower);
+    const fcMatch = campus.foodCourts.some((fc) =>
+      fc.name.toLowerCase().includes(searchLower)
+    );
+    return campusMatch || fcMatch;
+  });
+
+  if (loading) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-white">
+        <Loader2 className="animate-spin text-orange-500 mb-2" size={40} />
+        <p className="font-black text-gray-400 uppercase tracking-widest text-xs">Loading Campuses...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* Header Section */}
+      <div className="bg-white p-8 pt-16 rounded-b-[40px] shadow-sm">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h1 className="text-4xl font-black text-gray-900 leading-none">
+              Hungry,<br />
+              <span className="text-orange-500 text-5xl">KIITian?</span>
+            </h1>
+          </div>
+          <div className="bg-orange-100 p-3 rounded-2xl text-orange-600">
+            <UtensilsCrossed size={28} />
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Search Bar */}
+        <div className="relative group">
+          <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors">
+            <Search size={20} />
+          </div>
+          <input
+            type="text"
+            placeholder="Search Campus 1 to 15..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-gray-100 p-5 pl-14 rounded-[25px] font-bold outline-none border-2 border-transparent focus:border-orange-500 focus:bg-white transition-all shadow-inner"
+          />
         </div>
-      </main>
+      </div>
+
+      {/* Campus Grid */}
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6 px-2">
+          <h2 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em]">Available Campuses</h2>
+          <span className="text-xs font-black bg-gray-200 px-2 py-1 rounded-md">{filteredCampuses.length} Found</span>
+        </div>
+
+        {filteredCampuses.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-gray-400 font-bold">Aisa koi campus nahi mila bhai! 😅</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            {filteredCampuses.map((campus) => (
+              <button
+                key={campus.id}
+                onClick={() => router.push(`/campus/${campus.id}`)}
+                className="bg-white p-6 rounded-[35px] shadow-sm border border-gray-100 hover:border-orange-500 hover:shadow-xl hover:shadow-orange-500/10 transition-all active:scale-95 group text-left"
+              >
+                <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500 mb-4 group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                  <MapPin size={24} />
+                </div>
+                <p className="text-xs font-black text-gray-400 uppercase mb-1">KIIT</p>
+                <p className="text-xl font-black text-gray-900 tracking-tight">Campus {campus.campusNumber}</p>
+                <div className="mt-4 flex items-center gap-1 text-[10px] font-black text-green-600 uppercase">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                  Open Now
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

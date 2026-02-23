@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  phone     String?
+  role      String   @default("student")
+  orders    Order[]
+  createdAt DateTime @default(now())
+}
+
+model Campus {
+  id          String      @id @default(cuid())
+  campusNumber Int         @unique // e.g., 1, 3, 6, 15
+  foodCourts  FoodCourt[]
+}
+
+model FoodCourt {
+  id          String     @id @default(cuid())
+  name        String     // e.g., "FC-6", "King's Palace", "Central Kitchen"
+  image       String?
+  campusId    String
+  campus      Campus     @relation(fields: [campusId], references: [id])
+  menuItems   MenuItem[]
+  orders      Order[]
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  userId      String      // Kisne order kiya
+  user        User        @relation(fields: [userId], references: [id])
+  fcId        String      // Kaunse FC se order aaya
+  foodCourt   FoodCourt   @relation(fields: [fcId], references: [id])
+  totalAmount Float
+  status      String      @default("PENDING") // PENDING, PREPARING, READY, DELIVERED
+  items       OrderItem[]
+  createdAt   DateTime    @default(now())
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  order     Order  @relation(fields: [orderId], references: [id])
+  name      String
+  quantity  Int
+  price     Float
+}
+
+model MenuItem {
+  id          String    @id @default(cuid())
+  name        String
+  price       Float
+  description String?
+  foodCourtId String
+  foodCourt   FoodCourt @relation(fields: [foodCourtId], references: [id])
+}
